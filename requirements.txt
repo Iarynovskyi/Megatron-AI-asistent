@@ -1,0 +1,9 @@
+# Picovoice stuff
+pvporcupine
+pvrecorder
+
+# Vosk
+vosk
+
+PyYAML
+python-dotenv

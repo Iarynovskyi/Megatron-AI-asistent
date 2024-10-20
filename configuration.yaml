@@ -1,0 +1,23 @@
+# configuration.yaml
+
+# Налаштування Wake-on-LAN
+switch:
+  - platform: wake_on_lan
+    name: "Turn On PlayStation"
+    mac: "0c:70:43:91:51:e4"  # Замість цього вставте MAC-адресу вашої PlayStation
+    broadcast_address: "192.168.0.191"  # Замість цього вставте IP або Broadcast IP адреса вашої мережі
+
+# Налаштування автоматизацій
+automation:
+  # Автоматизація для включення PlayStation о 18:00
+  - alias: "Turn On PlayStation at 6 PM"
+    trigger:
+      platform: time
+      at: "21:38:00"  # Час, коли PlayStation повинна включитися
+    action:
+      - service: switch.turn_on
+        entity_id: switch.turn_on_playstation
+
+# Опціонально: Налаштування shell_command для ps5-wake
+shell_command:
+  wake_ps5: 'ps5-wake 0c:70:43:91:51:e4 --pin '  # Вставте MAC-адресу та PIN-код вашої PS5
