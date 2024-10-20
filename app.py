@@ -1,184 +1,3 @@
-from http.client import responses
-
-from torch.utils.tensorboard.summary import audio
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, GenerationConfig, TrainingArguments, Trainer
-import torch
-import os
-import time
-import pandas as pd
-import re
-import numpy as np
-import string
-from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_extraction.text import TfidfTransformer,TfidfVectorizer
-from sklearn.pipeline import Pipeline
-import evaluate
-from datasets import load_dataset
-from peft import LoraConfig, PeftModel
-from trl import SFTTrainer
-
-from huggingface_hub import login
-#from kaggle_secrets import UserSecretsClient
-
-#secret_label = "HF Hub"
-#secret_value = UserSecretsClient().get_secret(secret_label)
-#login(token=secret_value)
-
-
-import transformers
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-    HfArgumentParser,
-    TrainingArguments,
-    pipeline,
-    logging,
-)
-
-import speech_recognition as sr
-import sounddevice as sd
-import torch
-import pyttsx3
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
-
-# Підключення пристрою (GPU/CPU)
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-
-# Завантаження моделі та процесора Whisper
-model_id = "openai/whisper-large-v3"
-model = AutoModelForSpeechSeq2Seq.from_pretrained(model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True).to(device)
-processor = AutoProcessor.from_pretrained(model_id)
-
-# Створення pipeline для автоматичного розпізнавання мовлення
-pipe = pipeline(
-    "automatic-speech-recognition",
-    model=model,
-    tokenizer=processor.tokenizer,
-    feature_extractor=processor.feature_extractor,
-    torch_dtype=torch_dtype,
-    device=device,
-)
-def record_audio(duration=5, fs=16000):
-    print("Recording...")
-    audio = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype="float32")
-    sd.wait()  # Очікуємо завершення запису
-    return audio
-
-
-def convert_to_mono(audio_data):
-    if len(audio_data.shape) > 1:  # Якщо є більше одного каналу
-        audio_data = np.mean(audio_data, axis=1)  # Усереднюємо по всіх каналах
-    return audio_data
-def Record_Text():
-    while True:
-        try:
-            with sr.Microphone() as source2:
-                r.adjust_for_ambient_noise(source2, duration=0.2)
-                print("Recording...")
-                audio2 = r.listen(source2)
-                MyText = r.recognize_google(audio2)
-                return MyText
-        except sr.RequestError as e:
-            print("Could not request audio")
-        except sr.UnknownValueError:
-            print("UnknownValueError")
-
-def listen_for_keyword(keyword):
-    print("Слухаю... (Скажіть 'стоп', щоб почати запис)")
-    while True:
-        # Запис короткого аудіо для виявлення ключового слова
-        audio_data = record_audio(duration=3)  # Записуємо 3 секунди
-        audio_data = convert_to_mono(audio_data)
-
-        # Перетворення аудіо в текст
-        result = pipe(audio_data, return_timestamps=False)
-        recognized_text = result['text']
-
-        print(f"Виявлено: {recognized_text}")
-
-        # Перевірка на ключове слово
-        if keyword in recognized_text.lower():
-            print("Ключове слово виявлено! Починаю запис...")
-            break
-
-    # Тепер записуємо основне аудіо після виявлення ключового слова
-    main_audio = record_audio(duration=10)  # Можна змінити тривалість запису
-    main_audio = convert_to_mono(main_audio)
-
-    # Перетворення основного аудіо в текст
-    result = pipe(main_audio, return_timestamps=True)
-    transcribed_text = result['text']
-
-    # Виведення результату
-    print("Текст запису:", transcribed_text)
-    return main_audio
-
-audio_file = "/Users/mac/Downloads/Your_First_Lesson.mp3"
-
-from huggingface_hub import InferenceClient
-from dotenv import load_dotenv
-api_key = os.getenv("API-KEY")
-client = InferenceClient(api_key=api_key)
-
-def Massage_to_chat(massage):
-    response = ""
-    for message in client.chat_completion(
-        model="meta-llama/Meta-Llama-3-8B-Instruct",
-        messages=[{"role": "user", "content": massage}],
-        max_tokens=500,
-        stream=False,
-    ):
-        print(message.choices[0].delta.content, end="")
-    print("\n-" * 3)
-
-def Massage_to_chat_q(massage):
-    for message in client.chat_completion(
-            model="meta-llama/Meta-Llama-3-8B-Instruct",
-            messages=[{"role": "user", "content": "What is the capital of France?"}],
-            max_tokens=500,
-            stream=True,
-    ):
-        print(message.choices[0].delta.content, end="")
-
-
-def Speak_Text(text):
-    engine = pyttsx3.init()
-    engine.setProperty("rate", 100)
-    engine.say(text)
-    engine.runAndWait()
-r = sr.Recognizer()
-
-
-#pipe = pipeline("text-to-speech", model="myshell-ai/MeloTTS-English")
-'''
-while(True):
-    audio_data = listen_for_keyword("мегатрон")
-    result = pipe(audio_data, return_timestamps=True)
-    transcribed_text = result['text']
-    base_text = "Your name is Megatron so you must talk like him. You can talk in english. You must tell me a not very big texts. Be kind, speak without insertions, like '(In a deep, robotic voice)'. My question is: "
-    print(transcribed_text)
-    all_text = base_text + transcribed_text
-
-    print("if you wont to stop print s: ")
-    input_text = input("Print massage: ").lower()
-    if input_text == "s":
-        break
-    Massage_to_chat(all_text)
-'''
-
-#--------------------------------------------------------------------------------------
-
-
-
-
-
-
 
 import datetime
 import json
@@ -221,7 +40,7 @@ Megatron = "/Users/mac/Downloads/Megatron_en_mac_v3_0_0/Megatron_en_mac_v3_0_0.p
 # PORCUPINE
 porcupine = pvporcupine.create(
     access_key=os.getenv("PICOVOICE_TOKEN"),
-    keywords=["jarvis"],
+    keyword_paths=['/Users/mac/Downloads/Megatron_en_mac_v3_0_0/Megatron_en_mac_v3_0_0.ppn'],
     sensitivities=[1]
 )
 
@@ -306,6 +125,8 @@ def play(phrase, wait_done=True):
         filename += "sound_ready.wav"
     elif phrase == "off":
         filename += "sound_off.wav"
+    elif phrase == "who":
+        filename += "megatron-yard-leader-101soundboards.mp3"
 
     # Перевірка, чи існує файл
     if not os.path.isfile(filename):
@@ -358,7 +179,6 @@ def va_respond(voice: str):
         execute_cmd(cmd['cmd'], voice)
         return True
 
-
 from wakeonlan import send_magic_packet
 
 # Введіть MAC-адресу вашої PS5
@@ -405,16 +225,12 @@ def switch_audio_output(target_device):
     """Switch audio output to the specified device."""
     subprocess.run(["SwitchAudioSource", "-s", target_device])
 
-def switch_to_headphones():
+def switch_to_headphones(device_name):
     """Switch audio output to headphones."""
-    devices = get_audio_devices()
-    headphones = [device for device in devices if "headphones" in device.lower()]
+    command = f'SwitchAudioSource -s "{device_name}"'
+    os.system(command)
+    print(f'Аудіо перемкнуто на: {device_name}')
 
-    if headphones:
-        print(f"Switching to headphones: {headphones[0]}")
-        switch_audio_output(headphones[0])
-    else:
-        print("No headphones found.")
 
 def switch_to_speakers():
     """Switch audio output to speakers."""
@@ -436,25 +252,7 @@ def unmute_sound():
     os.system("osascript -e 'set volume output muted false'")
 
 def shutdown_system():
-    try:
-        # Очищення ресурсу porcupine
-        if porcupine is not None:
-            porcupine.delete()
-
-        # Відключення аудіо-системи, якщо активна
-        if sd.get_stream() is not None:
-            sd.stop()
-            sd.close()
-
-        # Виведення повідомлення про вимкнення
-        print("Система вимкнена коректно.")
-
-        # Коректне завершення програми
-        sys.exit(0)
-
-    except Exception as e:
-        print(f"Помилка при вимкненні системи: {e}")
-        sys.exit(1)
+    sys.exit(1)
 
 def filter_cmd(raw_voice: str):
     cmd = raw_voice
@@ -508,15 +306,15 @@ def execute_cmd(cmd: str, voice: str):
         switch_to_speakers()
         play("ok")
     elif cmd == 'switch_to_headphones':
-        switch_to_headphones()
+        switch_to_headphones("YARIN🖤")
         play("ok")
     elif cmd == 'gaming_mode_on':
-
         play("ok")
     elif cmd == 'off':
         play("off", True)
         shutdown_system()
-
+    elif cmd == 'who':
+        play("who")
 
 
 #print(f'Using device: {stream.selected_device}')
@@ -524,7 +322,7 @@ print(f"Jarvis (v3.0) started...")
 play("run")
 print("run")
 time.sleep(0.5)
-ltc = time.time()-1000
+#ltc = time.time()-1000
 try:
     while True:
         pcm = stream.read(512, exception_on_overflow=False)  # Зчитуємо 512 байтів
@@ -537,21 +335,21 @@ try:
             play("greet", True)
             print("Так, сер.")
             stream.start_stream()
-            ltc = time.time()
-            k = True
-        while time.time() - ltc <= 10:
-            data = stream.read(512, exception_on_overflow=False)
-            if kaldi_rec.AcceptWaveform(data):
-                recognized_text = json.loads(kaldi_rec.Result())["text"]
-                print("Recognized text:", recognized_text)
-                if va_respond(recognized_text):
-                    print("12345")
-                    ltc = time.time()
-                    break
-            else:
-                partial_result = kaldi_rec.PartialResult()
-                print("Partial result:", json.loads(partial_result)["partial"])
-            time.sleep(0.01)
+            #ltc = time.time()
+            #while time.time() - ltc <= 10:
+            while True:
+                data = stream.read(512, exception_on_overflow=False)
+                if kaldi_rec.AcceptWaveform(data):
+                    recognized_text = json.loads(kaldi_rec.Result())["text"]
+                    print("Recognized text:", recognized_text)
+                    if va_respond(recognized_text):
+                        print("12345")
+                        ltc = time.time()
+                        break
+                else:
+                    partial_result = kaldi_rec.PartialResult()
+                    print("Partial result:", json.loads(partial_result)["partial"])
+                time.sleep(0.01)
 
 except KeyboardInterrupt:
     print("Stopping...")
