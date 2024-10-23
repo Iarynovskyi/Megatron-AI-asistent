@@ -90,15 +90,18 @@ def play(phrase, wait_done=True):
     global recorder
     filename = f"{CDIR}/sound/"
     if phrase == "greet":
-        filename += f"sound_greet{random.choice([1, 2, 3])}.wav"
+        #filename += f"sound_greet{random.choice([1, 2, 3])}.wav"
+        filename += "Yes-Mgn.mp3"
     elif phrase == "ok":
-        filename += f"sound_ok{random.choice([1, 2, 3])}.wav"
+        filename += "Yes-Mgn.mp3"
+        #filename += f"sound_ok{random.choice([1, 2, 3])}.wav"
     elif phrase == "not_found":
-        filename += "sound_not_found.wav"
+        #filename += "sound_not_found.wav"
+        filename += "Do-you-understand-Mgn.mp3"
     elif phrase == "thanks":
-        filename += "sound_thanks.wav"
+        filename += "This-victory-is-start-Mgn.mp3"
     elif phrase == "run":
-        filename += "sound_run.wav"
+        filename += "I-sleep-to-long-Mgn.mp3"
     elif phrase == "stupid":
         filename += "sound_stupid.wav"
     elif phrase == "ready":
@@ -106,7 +109,9 @@ def play(phrase, wait_done=True):
     elif phrase == "off":
         filename += "sound_off.wav"
     elif phrase == "who":
-        filename += "megatron-yard-leader-101soundboards.mp3"
+        filename += "I-am-megatron-Mgn.mp3"
+    elif phrase == "impressed":
+        filename += "I-am-now-awaiting-impressed-Mgn.mp3"
 
     if not os.path.isfile(filename):
         print(f"File does not exist: {filename}")
@@ -118,7 +123,7 @@ def play(phrase, wait_done=True):
     if wait_done:
         # Чекати, поки звук грає
         while pygame.mixer.music.get_busy():
-            pygame.time.Clock().tick(5)  # Додаємо затримку для зменшення навантаження на ЦП
+            pygame.time.Clock().tick(1)  # Додаємо затримку для зменшення навантаження на ЦП
     print("Sound playback finished.")
 
 def q_callback(indata, frames, time, status):
@@ -135,7 +140,7 @@ def va_respond(voice: str):
         return False
     elif cmd['percent'] < 60 or cmd['cmd'] not in VA_CMD_LIST.keys():
         if fuzz.ratio(voice.join(voice.split()[:1]).strip(), "скажи") > 75:
-            play("stupid")
+            play("impressed")
             message_log.append({"role": "user", "content": voice})
             response = llama_answer()
             ukr_response = translate_text(response)
@@ -204,8 +209,7 @@ def start_ps_remote_play():
     try:
         subprocess.Popen(["open", "-a", remote_play_path])
         print("PlayStation Remote Play запущено...")
-        time.sleep(2)  # Дайте час додатку для запуску
-        # Переключіть фокус на вікно Remote Play
+        time.sleep(2)
         pyautogui.hotkey('command', 'tab')  # Перейти до наступного вікна
         time.sleep(3)  # Зачекайте, щоб переконатися, що вікно активне
         button_x, button_y = 644, 555  # Встановіть правильні координати кнопки
