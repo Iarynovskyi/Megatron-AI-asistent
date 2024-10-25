@@ -66,6 +66,22 @@ def va_speak(what: str):
             print(f"Виникла помилка: {e} при обробці фрагмента {i+1}/{len(text_chunks)}")
             continue
 
-# sd.play(audio, sample_rate)
-# time.sleep(len(audio) / sample_rate)
-# sd.stop()
+'''
+from TTS.api import TTS
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# List available 🐸TTS1 models
+print(TTS().list_models())
+
+# Init TTS1
+tts = TTS("tts_models/multilingual/multi-dataset/xtts.py").to(device)
+
+# Run TTS1
+# ❗ Since this model is multi-lingual voice cloning model, we must set the target speaker_wav and language
+# Text to speech list of amplitude values as output
+wav = tts.tts(text="Hello world!", speaker_wav="my/cloning/audio.wav", language="en")
+# Text to speech to a file
+tts.tts_to_file(text="Hello world!", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
+
+'''
